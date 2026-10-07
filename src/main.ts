@@ -15,6 +15,8 @@ if (!aplicacion) {
   throw new Error("No se encontró el contenedor principal de la aplicación.")
 }
 
+const contenedor = aplicacion
+
 type Vista = "nueva" | "juego" | "final"
 type Accion = "avisar" | "drenar"
 
@@ -47,7 +49,9 @@ function dibujarZona(zona: Zona): string {
       : `${zona.agua} niveles de agua`
   const quebrada = zona.quebrada ? " · quebrada" : ""
   const deshabilitada =
-    zona.evacuada || zona.inundada || estado?.accionesRestantes === 0
+    zona.evacuada ||
+    (accionSeleccionada === "avisar" && zona.inundada) ||
+    estado?.accionesRestantes === 0
 
   return `
     <button
@@ -122,7 +126,7 @@ function dibujarPartida(): string {
 
 function dibujar(): void {
   if (vista === "nueva") {
-    aplicacion.innerHTML = `
+    contenedor.innerHTML = `
       <main class="pantalla pantalla--inicio">
         <p class="ceja">Tormenta · el turno de la comunidad</p>
         <h1>El agua está subiendo.</h1>
@@ -143,7 +147,7 @@ function dibujar(): void {
 
   if (vista === "final") {
     const resumen = obtenerResumen(estado)
-    aplicacion.innerHTML = `
+    contenedor.innerHTML = `
       <main class="pantalla pantalla--final">
         <p class="ceja">Tormenta · resultado</p>
         <h1>${estado.resultado === "ganada" ? "La comunidad se salvó." : "La tormenta ganó esta vez."}</h1>
@@ -155,7 +159,7 @@ function dibujar(): void {
     return
   }
 
-  aplicacion.innerHTML = `<main class="pantalla">${dibujarPartida()}</main>`
+  contenedor.innerHTML = `<main class="pantalla">${dibujarPartida()}</main>`
 }
 
 function iniciarPartida(): void {
@@ -166,7 +170,7 @@ function iniciarPartida(): void {
   dibujar()
 }
 
-aplicacion.addEventListener("click", (evento: MouseEvent) => {
+contenedor.addEventListener("click", (evento: MouseEvent) => {
   const objetivo = evento.target
   if (!(objetivo instanceof Element)) {
     return
