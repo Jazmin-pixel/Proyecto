@@ -1,10 +1,12 @@
-const CONFIG = {
+export const CONFIG = {
   FILAS: 5, // filas
   COLUMNAS: 5, // columnas
   FAMILIAS_MINIMAS: 1, // familias por zona
   FAMILIAS_MAXIMAS: 3, // familias por zona
   AGUA_INICIAL_MINIMA: 0, // niveles de agua
   AGUA_INICIAL_MAXIMA: 3, // niveles de agua
+  AGUA_EN_RIESGO: 3, // niveles de agua
+  AGUA_CRITICA: 5, // niveles de agua
   TURNO_INICIAL: 1, // turno
   ACCIONES_POR_TURNO: 3, // acciones
   TURNOS_MAXIMOS: 8, // turnos
@@ -28,11 +30,34 @@ export type Zona = {
   evacuada: boolean
 }
 
+export type EstadoVisualZona =
+  | "evacuada"
+  | "inundada"
+  | "critica"
+  | "riesgo"
+  | "tranquila"
+
 export type Estado = {
   zonas: Zona[]
   turno: number
   accionesRestantes: number
   resultado: "en curso" | "ganada" | "perdida"
+}
+
+export function obtenerEstadoVisualZona(zona: Zona): EstadoVisualZona {
+  if (zona.evacuada) {
+    return "evacuada"
+  }
+  if (zona.inundada) {
+    return "inundada"
+  }
+  if (zona.agua >= CONFIG.AGUA_CRITICA) {
+    return "critica"
+  }
+  if (zona.agua >= CONFIG.AGUA_EN_RIESGO) {
+    return "riesgo"
+  }
+  return "tranquila"
 }
 
 export type Resumen = {

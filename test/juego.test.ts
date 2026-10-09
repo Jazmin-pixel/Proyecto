@@ -1,8 +1,10 @@
 import { describe, expect, it } from "vitest"
 import {
   avisar,
+  CONFIG,
   crearEstado,
   drenar,
+  obtenerEstadoVisualZona,
   obtenerResumen,
   terminarTurno,
   type Estado,
@@ -61,6 +63,33 @@ describe("creación del tablero", () => {
 
   it("genera tableros distintos para semillas distintas", () => {
     expect(crearEstado(456).zonas).not.toEqual(crearEstado(457).zonas)
+  })
+
+  it("mantiene las familias y el agua inicial dentro de sus rangos para varias semillas", () => {
+    for (let semilla = 0; semilla < 50; semilla += 1) {
+      const estado = crearEstado(semilla)
+
+      for (const zona of estado.zonas) {
+        expect(zona.familias).toBeGreaterThanOrEqual(CONFIG.FAMILIAS_MINIMAS)
+        expect(zona.familias).toBeLessThanOrEqual(CONFIG.FAMILIAS_MAXIMAS)
+        expect(zona.agua).toBeGreaterThanOrEqual(CONFIG.AGUA_INICIAL_MINIMA)
+        expect(zona.agua).toBeLessThanOrEqual(CONFIG.AGUA_INICIAL_MAXIMA)
+      }
+    }
+  })
+
+  it("clasifica las zonas con estados que corresponden al nivel de agua y a su condición", () => {
+    const tranquila = crearEstadoControlado({ agua: 2 }).zonas[0]
+    const enRiesgo = crearEstadoControlado({ agua: 3 }).zonas[0]
+    const critica = crearEstadoControlado({ agua: 5 }).zonas[0]
+    const inundada = crearEstadoControlado({ inundada: true }).zonas[0]
+    const evacuada = crearEstadoControlado({ evacuada: true }).zonas[0]
+
+    expect(obtenerEstadoVisualZona(tranquila)).toBe("tranquila")
+    expect(obtenerEstadoVisualZona(enRiesgo)).toBe("riesgo")
+    expect(obtenerEstadoVisualZona(critica)).toBe("critica")
+    expect(obtenerEstadoVisualZona(inundada)).toBe("inundada")
+    expect(obtenerEstadoVisualZona(evacuada)).toBe("evacuada")
   })
 })
 
@@ -141,18 +170,29 @@ describe("acciones del jugador", () => {
 
 describe("finalización de turnos y resultados", () => {
   it("suma la lluvia, inunda al llegar a seis y habilita tres acciones en el turno siguiente", () => {
-    const estado = crearEstadoControlado({ agua: 4 })
-    estado.zonas[0].quebrada = false
+    const estado = crearEstadoControlado()
+    estado.zonas[0].agua = 5
     estado.zonas[20].agua = 4
-    estado.zonas[20].quebrada = true
 
     expect(terminarTurno(estado)).toBe(true)
-    expect(estado.zonas[0].agua).toBe(5)
-    expect(estado.zonas[0].inundada).toBe(false)
+    expect(estado.zonas[0].agua).toBe(6)
+    expect(estado.zonas[0].inundada).toBe(true)
     expect(estado.zonas[20].agua).toBe(6)
     expect(estado.zonas[20].inundada).toBe(true)
+    expect(obtenerResumen(estado).familiasPerdidas).toBe(2)
     expect(estado.turno).toBe(2)
     expect(estado.accionesRestantes).toBe(3)
+  })
+
+  it("no pierde las familias evacuadas si su zona se inunda después de la lluvia", () => {
+    const estado = crearEstadoControlado()
+    estado.zonas[0].agua = 5
+    estado.zonas[0].evacuada = true
+
+    expect(terminarTurno(estado)).toBe(true)
+    expect(estado.zonas[0].inundada).toBe(true)
+    expect(obtenerResumen(estado).familiasSalvadas).toBe(1)
+    expect(obtenerResumen(estado).familiasPerdidas).toBe(0)
   })
 
   it("gana al llegar al final con al menos el 70 por ciento de las familias salvadas", () => {
